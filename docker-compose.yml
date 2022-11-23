@@ -1,44 +1,108 @@
 version: '2'
 
 services:
-    mongo:
-        container_name: mongo
-        image: mongo:latest
-        volumes:
-            - ./data/mongo:/data/db
-        user: "${UID_GID}"
-        ports:
-            - "27017:27017"
-        networks:
-            - common
-        restart: always    
+  mongo:
+    container_name: mongo
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - ./data/mongo:/data/db
+    # user: '${UID_GID}'
+    ports:
+      - '27017:27017'
+    networks:
+      - common
 
-    redis:
-        container_name: redis
-        image: redis:alpine
-        command: ["redis-server", "--appendonly", "yes"]
-        volumes:
-            - ./data/redis:/data
-        user: "${UID_GID}"
-        ports:
-            - "6379:6379"
-        networks:
-            - common
-        restart: always
+  redis:
+    container_name: redis
+    image: redis:alpine
+    command: redis-server --appendonly yes # --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - ./data/redis:/data
+    user: "${UID_GID}"
+    ports:
+      - "6379:6379"
+    env_file:
+      - .env
+    networks:
+      - common
 
-    mysql:
-        container_name: mysql
-        image: mysql:5.7
-        volumes:
-            - ./data/mysql:/var/lib/mysql
-        user: "${UID_GID}"
-        ports:
-            - "3306:3306"
-        environment:
-            MYSQL_ROOT_PASSWORD: 'justapassword'
-        networks:
-            - common
-        restart: always
+  # nats:
+  #     container_name: nats
+  #     image: nats:latest
+  #     user: "${UID_GID}"
+  #     ports:
+  #         - 4222:4222
+  #     networks:
+  #         - common
+
+  postgres:
+    container_name: postgres
+    image: postgres:alpine
+    volumes:
+      - ./data/postgresql/pgdata:/var/lib/postgresql/data
+      # - /etc/passwd:/etc/passwd:ro
+    # user: '${UID_GID}'
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: example
+    networks:
+      - common
+
+  # mariadb:
+    # image: mysql:latest
+    # environment:
+      # MYSQL_ROOT_PASSWORD: example
+    # user: '${UID_GID}'
+    # ports:
+      # - 3306:3306
+    # volumes:
+      # # - ./data/mariadb:/var/lib/mysql
+      # - ./data/mysql:/var/lib/mysql
+    # networks:
+      # - common
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: example
+      UPLOAD_LIMIT: 1000M
+    depends_on:
+      - mysql
+    ports:
+      - 8080:80
+    networks:
+      - common
+
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    user: '${UID_GID}'
+    ports:
+      - 3306:3306
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    networks:
+      - common
+
+  # adminer:
+    # image: adminer
+    # ports:
+      # - 8080:8080
+    # depends_on:
+      # - mysql
+      # # - mariadb
+      # # - postgres
+    # networks:
+      # - common
 
 networks:
-    common:
+  common:
