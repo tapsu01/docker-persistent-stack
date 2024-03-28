@@ -9,7 +9,6 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: example
     volumes:
       - ./data/mongo:/data/db
-    # user: '${UID_GID}'
     ports:
       - '27017:27017'
     networks:
@@ -21,9 +20,9 @@ services:
     command: redis-server --appendonly yes # --requirepass ${REDIS_PASSWORD}
     volumes:
       - ./data/redis:/data
-    user: "${UID_GID}"
+    user: '${UID_GID}'
     ports:
-      - "6379:6379"
+      - '6379:6379'
     env_file:
       - .env
     networks:
@@ -38,71 +37,56 @@ services:
   #     networks:
   #         - common
 
-  postgres:
-    container_name: postgres
-    image: postgres:alpine
-    volumes:
-      - ./data/postgresql/pgdata:/var/lib/postgresql/data
-      # - /etc/passwd:/etc/passwd:ro
-    # user: '${UID_GID}'
-    ports:
-      - '5432:5432'
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: example
-    networks:
-      - common
-
-  # mariadb:
-    # image: mysql:latest
-    # environment:
-      # MYSQL_ROOT_PASSWORD: example
-    # user: '${UID_GID}'
-    # ports:
-      # - 3306:3306
-    # volumes:
-      # # - ./data/mariadb:/var/lib/mysql
-      # - ./data/mysql:/var/lib/mysql
-    # networks:
-      # - common
-
-  phpmyadmin:
-    image: phpmyadmin:latest
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-      PMA_HOST: mysql
-      PMA_USER: root
-      PMA_PASSWORD: example
-      UPLOAD_LIMIT: 1000M
-    depends_on:
-      - mysql
-    ports:
-      - 8080:80
-    networks:
-      - common
+  # postgres:
+  #   container_name: postgres
+  #   image: postgres:alpine
+  #   volumes:
+  #     - ./data/postgresql/pgdata:/var/lib/postgresql/data
+  #     # - /etc/passwd:/etc/passwd:ro
+  #   # user: '${UID_GID}'
+  #   ports:
+  #     - '5432:5432'
+  #   environment:
+  #     POSTGRES_USER: root
+  #     POSTGRES_PASSWORD: example
+  #   networks:
+  #     - common
 
   mysql:
-    image: mysql:latest
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-    user: '${UID_GID}'
+    image: 'mysql/mysql-server:8.0'
     ports:
-      - 3306:3306
+      - '${FORWARD_DB_PORT:-3306}:3306'
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_DATABASE: '${DB_DATABASE}'
+      MYSQL_USER: '${DB_USERNAME}'
+      MYSQL_PASSWORD: '${DB_PASSWORD}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
     volumes:
       - ./data/mysql:/var/lib/mysql
     networks:
       - common
 
-  # adminer:
-    # image: adminer
-    # ports:
-      # - 8080:8080
-    # depends_on:
-      # - mysql
-      # # - mariadb
-      # # - postgres
-    # networks:
-      # - common
+  phpmyadmin:
+    image: 'phpmyadmin'
+    env_file:
+      - .env
+    ports:
+      - 8080:80
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: '${DB_USERNAME}'
+      PMA_PASSWORD: '${DB_PASSWORD}'
+      PMA_ARBITRARY: 1
+      PMA_PORT: '${FORWARD_DB_PORT:-3306}'
+    depends_on:
+      - mysql
+    networks:
+      - common
 
 networks:
   common:
+    name: common
